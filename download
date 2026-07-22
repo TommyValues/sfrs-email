@@ -1,0 +1,66 @@
+const state = { folder: 'inbox', messages: [], selected: null, query: '' };
+const $ = id => document.getElementById(id);
+
+function toast(message) {
+  $('toast').textContent = message; $('toast').hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => $('toast').hidden = true, 3000);
+}
+function escapeHtml(v='') { return String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function dateLabel(value) {
+  const d = new Date(value), now = new Date();
+  return d.toDateString() === now.toDateString() ? d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : d.toLocaleDateString([], {month:'short',day:'numeric'});
+}
+async function api(url, options={}) {
+  const res = await fetch(url, { headers:{'Content-Type':'application/json', ...(options.headers||{})}, ...options });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+async function load() {
+  const params = new URLSearchParams({ folder:state.folder });
+  if (state.query) params.set('q', state.query);
+  state.messages = await api(`/api/messages?${params}`);
+  render();
+}
+function render() {
+  $('status').textContent = state.folder[0].toUpperCase()+state.folder.slice(1);
+  const list = $('mailList'); list.innerHTML='';
+  $('empty').hidden = state.messages.length > 0;
+  const unread = state.messages.filter(m => !m.read && m.folder==='inbox').length;
+  $('unreadCount').textContent = unread || '';
+  for (const m of state.messages) {
+    const row = document.createElement('div'); row.className = `mail-row ${m.read?'':'unread'}`;
+    row.innerHTML = `<button class="star ${m.starred?'on':''}" aria-label="Star">${m.starred?'★':'☆'}</button>
+      <div class="sender">${escapeHtml(m.from)}</div>
+      <div class="subject-line"><span>${escapeHtml(m.subject)}</span> <span class="preview">— ${escapeHtml(m.preview)}</span></div>
+      <div class="date">${dateLabel(m.date)}</div>`;
+    row.querySelector('.star').onclick = async e => { e.stopPropagation(); await patch(m.id,{starred:!m.starred}); };
+    row.onclick = () => openMessage(m);
+    list.appendChild(row);
+  }
+}
+async function patch(id, body) { await api(`/api/messages/${id}`, {method:'PATCH', body:JSON.stringify(body)}); await load(); }
+async function openMessage(m) {
+  state.selected = m; $('readerSubject').textContent=m.subject; $('readerFrom').textContent=m.from;
+  $('readerDate').textContent=new Date(m.date).toLocaleString(); $('readerTo').textContent=`to ${m.to.join(', ')}`;
+  $('readerBody').textContent=m.body || m.preview; $('readerStar').textContent=m.starred?'★ Starred':'☆ Star';
+  $('readerBackdrop').hidden=false; if(!m.read){ await api(`/api/messages/${m.id}`,{method:'PATCH',body:JSON.stringify({read:true})}); m.read=true; }
+}
+$('folders').onclick = e => { const btn=e.target.closest('.folder'); if(!btn)return; document.querySelectorAll('.folder').forEach(x=>x.classList.remove('active'));btn.classList.add('active');state.folder=btn.dataset.folder;load(); };
+$('refreshBtn').onclick=load;
+$('menuBtn').onclick=()=> $('sidebar').classList.toggle('collapsed');
+$('searchInput').oninput=e=>{clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{state.query=e.target.value.trim();load();},300)};
+$('closeReader').onclick=()=>{ $('readerBackdrop').hidden=true; state.selected=null; load(); };
+$('readerStar').onclick=async()=>{if(state.selected) await patch(state.selected.id,{starred:!state.selected.starred});$('readerBackdrop').hidden=true;};
+$('readerTrash').onclick=async()=>{if(state.selected) await patch(state.selected.id,{folder:'trash'});$('readerBackdrop').hidden=true;};
+$('composeBtn').onclick=()=>{ $('composer').hidden=false; $('composeTo').focus(); };
+$('closeComposer').onclick=()=> $('composer').hidden=true;
+$('sendBtn').onclick=async()=>{
+  $('sendStatus').textContent='Sending…';
+  try { await api('/api/send',{method:'POST',body:JSON.stringify({to:$('composeTo').value,cc:$('composeCc').value,subject:$('composeSubject').value,body:$('composeBody').value})});
+    ['composeTo','composeCc','composeSubject','composeBody'].forEach(id=>$(id).value=''); $('composer').hidden=true; toast('Message sent'); load();
+  } catch(e){ toast(e.message); } finally { $('sendStatus').textContent=''; }
+};
+async function sync(provider){ try{toast(`Syncing ${provider}…`);const result=await api(`/api/sync/${provider}`,{method:'POST',body:'{}'});toast(`Imported ${result.added} new message(s)`);load();}catch(e){toast(e.message);} }
+$('syncGmail').onclick=()=>sync('gmail'); $('syncOutlook').onclick=()=>sync('outlook');
+load().catch(e=>toast(e.message));

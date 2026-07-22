@@ -1,0 +1,23 @@
+PORT=3000
+APP_EMAIL=contact.acfo.admin@SFRS.com
+APP_NAME=ACFO Admin
+WEBHOOK_SECRET=replace-with-a-long-random-value
+
+# SMTP sending (works with your email host, Microsoft 365, Gmail relay, etc.)
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=contact.acfo.admin@SFRS.com
+SMTP_PASS=replace-me
+
+# Gmail import (OAuth 2.0 refresh token)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REFRESH_TOKEN=
+GOOGLE_USER=me
+
+# Microsoft 365 / Outlook import (application permissions)
+MS_TENANT_ID=
+MS_CLIENT_ID=
+MS_CLIENT_SECRET=
+MS_MAILBOX=contact.acfo.admin@SFRS.com

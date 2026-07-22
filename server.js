@@ -1,0 +1,20 @@
+{
+  "name": "acfo-mail-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gmail-style email app for contact.acfo.admin@SFRS.com",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@azure/msal-node": "^3.8.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "googleapis": "^150.0.1",
+    "multer": "^2.0.1",
+    "nodemailer": "^7.0.3"
+  }
+}
