@@ -56,3 +56,20 @@ button { cursor:pointer; }
   .brand strong { display:none; }.brand { min-width:auto; }.sidebar { width:76px; }.sidebar span,.sidebar b,.sync-box { display:none; }
   .content { margin-right:0;border-radius:0;}.mail-row { grid-template-columns:36px 110px 1fr 60px; }.reader-backdrop { left:0; }.topbar { gap:8px;padding:8px; }
 }
+.login-screen { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#f6f8fc; padding:24px; }
+.login-card { width:min(440px,100%); background:white; border:1px solid var(--line); border-radius:24px; padding:40px; text-align:center; box-shadow:0 12px 36px rgba(60,64,67,.12); }
+.login-logo { width:62px; height:48px; margin:0 auto 22px; display:grid; place-items:center; border-radius:10px; color:white; background:linear-gradient(135deg,#4285f4 0 25%,#ea4335 25% 50%,#fbbc05 50% 75%,#34a853 75%); font-size:28px; font-weight:700; }
+.login-card h1 { margin:0 0 12px; font-size:26px; font-weight:500; }
+.login-card p { color:var(--muted); line-height:1.55; }
+.google-signin { display:flex; align-items:center; justify-content:center; gap:12px; min-height:48px; margin:28px 0 14px; border:1px solid #dadce0; border-radius:24px; color:#3c4043; text-decoration:none; font-weight:600; background:white; }
+.google-signin:hover { background:#f8fafd; border-color:#c3c7ce; }
+.google-signin.disabled { opacity:.5; pointer-events:none; }
+.google-g { color:#4285f4; font-size:20px; font-weight:700; }
+.login-note { font-size:12px; }
+.login-error { margin-top:18px; padding:12px; border-radius:8px; background:#fce8e6; color:#b3261e; text-align:left; }
+.account-menu { position:relative; margin-left:auto; }
+.account-popover { position:absolute; right:0; top:48px; width:280px; padding:18px; border:1px solid var(--line); border-radius:16px; background:white; box-shadow:0 8px 24px rgba(60,64,67,.2); z-index:40; }
+.account-popover strong,.account-popover span { display:block; text-align:center; overflow:hidden; text-overflow:ellipsis; }
+.account-popover span { margin:6px 0 18px; color:var(--muted); font-size:13px; }
+.account-popover button { width:100%; padding:10px; border:1px solid var(--line); border-radius:18px; background:white; }
+.sync-box small { display:block; margin-top:8px; color:var(--muted); line-height:1.35; }

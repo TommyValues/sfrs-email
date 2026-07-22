@@ -1,23 +1,23 @@
-PORT=3000
-APP_EMAIL=contact.acfo.admin@gmail.com
-APP_NAME=ACFO Admin
-WEBHOOK_SECRET=replace-with-a-long-random-value
-
-# SMTP sending (works with your email host, Microsoft 365, Gmail relay, etc.)
-SMTP_HOST=smtp.office365.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=contact.acfo.admin@gmail.com
-SMTP_PASS=replace-me
-
-# Gmail import (OAuth 2.0 refresh token)
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REFRESH_TOKEN=
-GOOGLE_USER=me
-
-# Microsoft 365 / Outlook import (application permissions)
-MS_TENANT_ID=
-MS_CLIENT_ID=
-MS_CLIENT_SECRET=
-MS_MAILBOX=contact.acfo.admin@gmail.com
+{
+  "name": "acfo-mail-app",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Gmail-style email app with Google Sign-In for contact.acfo.admin@gmail.com",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^3.8.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "googleapis": "^150.0.1",
+    "multer": "^2.0.1",
+    "nodemailer": "^7.0.3",
+    "express-session": "^1.18.1"
+  }
+}
