@@ -2,7 +2,7 @@
   "name": "acfo-mail-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Gmail-style email app for contact.acfo.admin@SFRS.com",
+  "description": "Gmail-style email app for contact.acfo.admin@gmail.com",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

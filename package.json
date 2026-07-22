@@ -1,5 +1,5 @@
 PORT=3000
-APP_EMAIL=contact.acfo.admin@SFRS.com
+APP_EMAIL=contact.acfo.admin@gmail.com
 APP_NAME=ACFO Admin
 WEBHOOK_SECRET=replace-with-a-long-random-value
 
@@ -7,7 +7,7 @@ WEBHOOK_SECRET=replace-with-a-long-random-value
 SMTP_HOST=smtp.office365.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=contact.acfo.admin@SFRS.com
+SMTP_USER=contact.acfo.admin@gmail.com
 SMTP_PASS=replace-me
 
 # Gmail import (OAuth 2.0 refresh token)
@@ -20,4 +20,4 @@ GOOGLE_USER=me
 MS_TENANT_ID=
 MS_CLIENT_ID=
 MS_CLIENT_SECRET=
-MS_MAILBOX=contact.acfo.admin@SFRS.com
+MS_MAILBOX=contact.acfo.admin@gmail.com
