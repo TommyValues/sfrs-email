@@ -9,26 +9,14 @@ const session = require("express-session");
 const { google } = require("googleapis");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-const PORT = Number(process.env.PORT) || 3000;
 const BASE_URL =
   process.env.BASE_URL || `http://localhost:${PORT}`;
 
 const GOOGLE_REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI ||
   `${BASE_URL}/auth/google/callback`;
-
-const REQUIRED_ENVIRONMENT_VARIABLES = [
-  "GOOGLE_CLIENT_ID",
-  "GOOGLE_CLIENT_SECRET",
-  "SESSION_SECRET",
-];
-
-for (const variable of REQUIRED_ENVIRONMENT_VARIABLES) {
-  if (!process.env[variable]) {
-    console.warn(`Warning: ${variable} is not configured.`);
-  }
-}
 
 app.set("trust proxy", 1);
 
@@ -37,24 +25,24 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    name: "acfo.mail.session",
+    name: "acfo-mail-session",
     secret:
       process.env.SESSION_SECRET ||
-      "development-only-secret-change-this",
+      "development-secret-change-this",
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   })
 );
 
 /*
- * Your index.html, app.js and styles.css are stored at the repository root,
- * so Express serves static files from __dirname.
+ * Serves index.html, app.js and styles.css
+ * from the repository's main folder.
  */
 app.use(express.static(__dirname));
 
@@ -66,10 +54,10 @@ function createOAuthClient() {
   );
 }
 
-function requireAuthentication(req, res, next) {
+function requireLogin(req, res, next) {
   if (!req.session.googleTokens) {
     return res.status(401).json({
-      error: "You must sign in with Google first.",
+      error: "Not signed in.",
       signInUrl: "/auth/google",
     });
   }
@@ -77,27 +65,29 @@ function requireAuthentication(req, res, next) {
   next();
 }
 
-function getAuthenticatedOAuthClient(req) {
+function getAuthenticatedClient(req) {
   const oauthClient = createOAuthClient();
+
   oauthClient.setCredentials(req.session.googleTokens);
 
-  oauthClient.on("tokens", (tokens) => {
+  oauthClient.on("tokens", (newTokens) => {
     req.session.googleTokens = {
       ...req.session.googleTokens,
-      ...tokens,
+      ...newTokens,
     };
   });
 
   return oauthClient;
 }
 
-function getHeader(headers, name) {
-  const matchingHeader = headers.find(
-    (header) =>
-      String(header.name).toLowerCase() === name.toLowerCase()
+function getHeader(headers, headerName) {
+  const header = headers.find(
+    (item) =>
+      String(item.name).toLowerCase() ===
+      headerName.toLowerCase()
   );
 
-  return matchingHeader ? matchingHeader.value : "";
+  return header ? header.value : "";
 }
 
 function decodeBase64Url(value = "") {
@@ -112,18 +102,21 @@ function decodeBase64Url(value = "") {
   return Buffer.from(normalized, "base64").toString("utf8");
 }
 
-function findMessageBody(payload) {
+function extractMessageBody(payload) {
   if (!payload) {
     return "";
   }
 
-  if (payload.mimeType === "text/plain" && payload.body?.data) {
+  if (
+    payload.mimeType === "text/plain" &&
+    payload.body?.data
+  ) {
     return decodeBase64Url(payload.body.data);
   }
 
   if (Array.isArray(payload.parts)) {
     for (const part of payload.parts) {
-      const body = findMessageBody(part);
+      const body = extractMessageBody(part);
 
       if (body) {
         return body;
@@ -138,8 +131,8 @@ function findMessageBody(payload) {
   return "";
 }
 
-function encodeEmail(rawMessage) {
-  return Buffer.from(rawMessage)
+function encodeEmail(rawEmail) {
+  return Buffer.from(rawEmail)
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -147,7 +140,7 @@ function encodeEmail(rawMessage) {
 }
 
 /*
- * Homepage route.
+ * Homepage.
  * This fixes the "Cannot GET /" error.
  */
 app.get("/", (req, res) => {
@@ -160,12 +153,12 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
-    service: "acfo-mail",
+    service: "sfrs-email",
   });
 });
 
 /*
- * Returns the current login status for the frontend.
+ * Login status for the frontend.
  */
 app.get("/api/auth/status", (req, res) => {
   res.json({
@@ -178,7 +171,7 @@ app.get("/api/auth/status", (req, res) => {
 });
 
 /*
- * Starts Google OAuth.
+ * Start Google sign-in.
  */
 app.get("/auth/google", (req, res) => {
   if (
@@ -186,7 +179,7 @@ app.get("/auth/google", (req, res) => {
     !process.env.GOOGLE_CLIENT_SECRET
   ) {
     return res.status(500).send(
-      "Google OAuth has not been configured on Render."
+      "Google OAuth environment variables are missing."
     );
   }
 
@@ -195,25 +188,25 @@ app.get("/auth/google", (req, res) => {
 
   req.session.oauthState = state;
 
-  const authorizationUrl = oauthClient.generateAuthUrl({
+  const authUrl = oauthClient.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    prompt: "consent select_account",
     state,
     scope: [
       "openid",
       "email",
       "profile",
       "https://www.googleapis.com/auth/gmail.readonly",
-      "https://www.googleapis.com/auth/gmail.send",
       "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/gmail.send",
     ],
   });
 
-  res.redirect(authorizationUrl);
+  res.redirect(authUrl);
 });
 
 /*
- * Google redirects the browser here after login.
+ * Google OAuth callback.
  */
 app.get("/auth/google/callback", async (req, res) => {
   try {
@@ -225,16 +218,22 @@ app.get("/auth/google/callback", async (req, res) => {
       );
     }
 
-    if (!code || !state || state !== req.session.oauthState) {
-      return res.status(400).send(
-        "The Google sign-in request was invalid or expired."
-      );
+    if (
+      !code ||
+      !state ||
+      state !== req.session.oauthState
+    ) {
+      return res
+        .status(400)
+        .send("Invalid or expired Google login request.");
     }
 
     delete req.session.oauthState;
 
     const oauthClient = createOAuthClient();
-    const { tokens } = await oauthClient.getToken(String(code));
+    const { tokens } = await oauthClient.getToken(
+      String(code)
+    );
 
     oauthClient.setCredentials(tokens);
 
@@ -243,9 +242,10 @@ app.get("/auth/google/callback", async (req, res) => {
       auth: oauthClient,
     });
 
-    const profileResponse = await oauth2.userinfo.get();
+    const profile = await oauth2.userinfo.get();
+
     const signedInEmail = String(
-      profileResponse.data.email || ""
+      profile.data.email || ""
     ).toLowerCase();
 
     const allowedEmail = String(
@@ -256,8 +256,8 @@ app.get("/auth/google/callback", async (req, res) => {
     if (signedInEmail !== allowedEmail) {
       return res.status(403).send(`
         <h1>Access denied</h1>
-        <p>This app only permits ${allowedEmail}.</p>
-        <p>You signed in as ${signedInEmail || "an unknown account"}.</p>
+        <p>This app only allows ${allowedEmail}.</p>
+        <p>You signed in as ${signedInEmail || "unknown"}.</p>
         <p><a href="/auth/google">Try another account</a></p>
       `);
     }
@@ -267,48 +267,53 @@ app.get("/auth/google/callback", async (req, res) => {
 
     req.session.save((sessionError) => {
       if (sessionError) {
-        console.error("Session save error:", sessionError);
-        return res.status(500).send(
-          "The Google account was authorized, but the session could not be saved."
-        );
+        console.error(sessionError);
+
+        return res
+          .status(500)
+          .send("Could not save the login session.");
       }
 
       res.redirect("/");
     });
   } catch (error) {
-    console.error("OAuth callback error:", error);
+    console.error("Google callback error:", error);
 
     res.status(500).send(`
-      <h1>Google sign-in failed</h1>
+      <h1>Google login failed</h1>
       <p>${String(error.message || error)}</p>
-      <p><a href="/">Return to the app</a></p>
+      <p><a href="/">Return to the homepage</a></p>
     `);
   }
 });
 
 /*
- * Disconnects the account from the app.
+ * Sign out.
  */
 app.post("/auth/logout", async (req, res) => {
-  const tokens = req.session.googleTokens;
-
   try {
-    if (tokens?.access_token) {
+    const accessToken =
+      req.session.googleTokens?.access_token;
+
+    if (accessToken) {
       const oauthClient = createOAuthClient();
-      await oauthClient.revokeToken(tokens.access_token);
+      await oauthClient.revokeToken(accessToken);
     }
   } catch (error) {
-    console.warn("Google token revocation failed:", error.message);
+    console.warn(
+      "Google token could not be revoked:",
+      error.message
+    );
   }
 
   req.session.destroy((error) => {
     if (error) {
       return res.status(500).json({
-        error: "The session could not be cleared.",
+        error: "Could not clear the session.",
       });
     }
 
-    res.clearCookie("acfo.mail.session");
+    res.clearCookie("acfo-mail-session");
 
     res.json({
       success: true,
@@ -317,135 +322,121 @@ app.post("/auth/logout", async (req, res) => {
 });
 
 /*
- * Lists Gmail messages.
- *
- * Examples:
- * /api/messages
- * /api/messages?folder=inbox
- * /api/messages?folder=sent
- * /api/messages?folder=trash
- * /api/messages?query=meeting
+ * List Gmail messages.
  */
-app.get(
-  "/api/messages",
-  requireAuthentication,
-  async (req, res) => {
-    try {
-      const oauthClient = getAuthenticatedOAuthClient(req);
-      const gmail = google.gmail({
-        version: "v1",
-        auth: oauthClient,
-      });
+app.get("/api/messages", requireLogin, async (req, res) => {
+  try {
+    const auth = getAuthenticatedClient(req);
 
-      const folder = String(
-        req.query.folder || "inbox"
-      ).toLowerCase();
+    const gmail = google.gmail({
+      version: "v1",
+      auth,
+    });
 
-      const searchQuery = String(
-        req.query.query || ""
-      ).trim();
+    const folder = String(
+      req.query.folder || "inbox"
+    ).toLowerCase();
 
-      const labelMap = {
-        inbox: "INBOX",
-        sent: "SENT",
-        drafts: "DRAFT",
-        trash: "TRASH",
-        starred: "STARRED",
-      };
+    const searchQuery = String(
+      req.query.query || ""
+    ).trim();
 
-      const labelIds = labelMap[folder]
-        ? [labelMap[folder]]
-        : ["INBOX"];
+    const folderLabels = {
+      inbox: "INBOX",
+      sent: "SENT",
+      drafts: "DRAFT",
+      trash: "TRASH",
+      starred: "STARRED",
+    };
 
-      const listResponse =
-        await gmail.users.messages.list({
+    const labelIds = [
+      folderLabels[folder] || "INBOX",
+    ];
+
+    const listResult = await gmail.users.messages.list({
+      userId: "me",
+      labelIds,
+      q: searchQuery || undefined,
+      maxResults: 30,
+    });
+
+    const references = listResult.data.messages || [];
+
+    const messages = await Promise.all(
+      references.map(async ({ id }) => {
+        const result = await gmail.users.messages.get({
           userId: "me",
-          labelIds,
-          q: searchQuery || undefined,
-          maxResults: 30,
+          id,
+          format: "metadata",
+          metadataHeaders: [
+            "From",
+            "To",
+            "Subject",
+            "Date",
+          ],
         });
 
-      const messageReferences =
-        listResponse.data.messages || [];
+        const message = result.data;
+        const headers = message.payload?.headers || [];
 
-      const messages = await Promise.all(
-        messageReferences.map(async ({ id }) => {
-          const messageResponse =
-            await gmail.users.messages.get({
-              userId: "me",
-              id,
-              format: "metadata",
-              metadataHeaders: [
-                "From",
-                "To",
-                "Subject",
-                "Date",
-              ],
-            });
+        return {
+          id: message.id,
+          threadId: message.threadId,
+          from: getHeader(headers, "From"),
+          to: getHeader(headers, "To"),
+          subject:
+            getHeader(headers, "Subject") ||
+            "(No subject)",
+          date: getHeader(headers, "Date"),
+          snippet: message.snippet || "",
+          labels: message.labelIds || [],
+          unread:
+            message.labelIds?.includes("UNREAD") ||
+            false,
+          starred:
+            message.labelIds?.includes("STARRED") ||
+            false,
+        };
+      })
+    );
 
-          const message = messageResponse.data;
-          const headers =
-            message.payload?.headers || [];
+    res.json({
+      messages,
+      resultSize: messages.length,
+    });
+  } catch (error) {
+    console.error("List messages error:", error);
 
-          return {
-            id: message.id,
-            threadId: message.threadId,
-            from: getHeader(headers, "From"),
-            to: getHeader(headers, "To"),
-            subject:
-              getHeader(headers, "Subject") ||
-              "(No subject)",
-            date: getHeader(headers, "Date"),
-            snippet: message.snippet || "",
-            labels: message.labelIds || [],
-            unread: Boolean(
-              message.labelIds?.includes("UNREAD")
-            ),
-            starred: Boolean(
-              message.labelIds?.includes("STARRED")
-            ),
-          };
-        })
-      );
-
-      res.json({
-        messages,
-        resultSize: messages.length,
-      });
-    } catch (error) {
-      console.error("Gmail list error:", error);
-
-      res.status(500).json({
-        error:
-          error.message ||
-          "The inbox could not be loaded.",
-      });
-    }
+    res.status(500).json({
+      error:
+        error.message ||
+        "Could not load Gmail messages.",
+    });
   }
-);
+});
 
 /*
- * Reads one complete Gmail message.
+ * Read a complete Gmail message.
  */
 app.get(
   "/api/messages/:messageId",
-  requireAuthentication,
+  requireLogin,
   async (req, res) => {
     try {
-      const oauthClient = getAuthenticatedOAuthClient(req);
+      const auth = getAuthenticatedClient(req);
+
       const gmail = google.gmail({
         version: "v1",
-        auth: oauthClient,
+        auth,
       });
 
-      const messageResponse =
-        await gmail.users.messages.get({
-          userId: "me",
-          id: req.params.messageId,
-          format: "full",
-        });
+      const result = await gmail.users.messages.get({
+        userId: "me",
+        id: req.params.messageId,
+        format: "full",
+      });
 
-      const message = messageResponse.data;
+      const message = result.data;
       const headers = message.payload?.headers || [];
 
       res.json({
@@ -458,35 +449,28 @@ app.get(
           getHeader(headers, "Subject") ||
           "(No subject)",
         date: getHeader(headers, "Date"),
-        body: findMessageBody(message.payload),
+        body: extractMessageBody(message.payload),
         snippet: message.snippet || "",
         labels: message.labelIds || [],
       });
     } catch (error) {
-      console.error("Gmail read error:", error);
+      console.error("Read message error:", error);
 
       res.status(500).json({
         error:
           error.message ||
-          "The message could not be loaded.",
+          "Could not load the message.",
       });
     }
   }
 );
 
 /*
- * Sends an email through Gmail.
- *
- * Expected JSON:
- * {
- *   "to": "someone@example.com",
- *   "subject": "Hello",
- *   "body": "Message text"
- * }
+ * Send an email.
  */
 app.post(
   "/api/messages/send",
-  requireAuthentication,
+  requireLogin,
   async (req, res) => {
     try {
       const to = String(req.body.to || "").trim();
@@ -497,14 +481,15 @@ app.post(
 
       if (!to) {
         return res.status(400).json({
-          error: "A recipient is required.",
+          error: "Recipient is required.",
         });
       }
 
-      const oauthClient = getAuthenticatedOAuthClient(req);
+      const auth = getAuthenticatedClient(req);
+
       const gmail = google.gmail({
         version: "v1",
-        auth: oauthClient,
+        auth,
       });
 
       const from =
@@ -512,7 +497,7 @@ app.post(
         process.env.ALLOWED_EMAIL ||
         "contact.acfo.admin@gmail.com";
 
-      const rawMessage = [
+      const rawEmail = [
         `From: ${from}`,
         `To: ${to}`,
         `Subject: ${subject || "(No subject)"}`,
@@ -523,43 +508,43 @@ app.post(
         body,
       ].join("\r\n");
 
-      const sendResponse =
-        await gmail.users.messages.send({
-          userId: "me",
-          requestBody: {
-            raw: encodeEmail(rawMessage),
-          },
-        });
+      const result = await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: encodeEmail(rawEmail),
+        },
+      });
 
       res.status(201).json({
         success: true,
-        messageId: sendResponse.data.id,
-        threadId: sendResponse.data.threadId,
+        messageId: result.data.id,
+        threadId: result.data.threadId,
       });
     } catch (error) {
-      console.error("Gmail send error:", error);
+      console.error("Send email error:", error);
 
       res.status(500).json({
         error:
           error.message ||
-          "The email could not be sent.",
+          "Could not send the email.",
       });
     }
   }
 );
 
 /*
- * Marks a message as read.
+ * Mark a message as read.
  */
 app.post(
   "/api/messages/:messageId/read",
-  requireAuthentication,
+  requireLogin,
   async (req, res) => {
     try {
-      const oauthClient = getAuthenticatedOAuthClient(req);
+      const auth = getAuthenticatedClient(req);
+
       const gmail = google.gmail({
         version: "v1",
-        auth: oauthClient,
+        auth,
       });
 
       await gmail.users.messages.modify({
@@ -570,41 +555,48 @@ app.post(
         },
       });
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+      });
     } catch (error) {
       res.status(500).json({
         error:
           error.message ||
-          "The message could not be marked as read.",
+          "Could not mark the message as read.",
       });
     }
   }
 );
 
 /*
- * Adds or removes the Gmail STARRED label.
+ * Star or unstar a message.
  */
 app.post(
   "/api/messages/:messageId/star",
-  requireAuthentication,
+  requireLogin,
   async (req, res) => {
     try {
       const starred =
         req.body.starred === true ||
         req.body.starred === "true";
 
-      const oauthClient = getAuthenticatedOAuthClient(req);
+      const auth = getAuthenticatedClient(req);
+
       const gmail = google.gmail({
         version: "v1",
-        auth: oauthClient,
+        auth,
       });
 
       await gmail.users.messages.modify({
         userId: "me",
         id: req.params.messageId,
         requestBody: starred
-          ? { addLabelIds: ["STARRED"] }
-          : { removeLabelIds: ["STARRED"] },
+          ? {
+              addLabelIds: ["STARRED"],
+            }
+          : {
+              removeLabelIds: ["STARRED"],
+            },
       });
 
       res.json({
@@ -615,24 +607,25 @@ app.post(
       res.status(500).json({
         error:
           error.message ||
-          "The star setting could not be changed.",
+          "Could not change the star status.",
       });
     }
   }
 );
 
 /*
- * Moves a message to Gmail Trash.
+ * Move a message to Trash.
  */
 app.delete(
   "/api/messages/:messageId",
-  requireAuthentication,
+  requireLogin,
   async (req, res) => {
     try {
-      const oauthClient = getAuthenticatedOAuthClient(req);
+      const auth = getAuthenticatedClient(req);
+
       const gmail = google.gmail({
         version: "v1",
-        auth: oauthClient,
+        auth,
       });
 
       await gmail.users.messages.trash({
@@ -640,19 +633,21 @@ app.delete(
         id: req.params.messageId,
       });
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+      });
     } catch (error) {
       res.status(500).json({
         error:
           error.message ||
-          "The message could not be moved to Trash.",
+          "Could not move the message to Trash.",
       });
     }
   }
 );
 
 /*
- * JSON response for unknown API routes.
+ * Unknown API routes.
  */
 app.use("/api", (req, res) => {
   res.status(404).json({
@@ -661,11 +656,9 @@ app.use("/api", (req, res) => {
 });
 
 /*
- * For other browser routes, return the homepage.
+ * Do not add app.get("*") here.
+ * Express 5 rejects that route.
  */
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
 
 app.use((error, req, res, next) => {
   console.error("Unexpected server error:", error);
@@ -676,7 +669,7 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`ACFO Mail is running on port ${PORT}`);
+  console.log(`ACFO Mail running on port ${PORT}`);
   console.log(`Base URL: ${BASE_URL}`);
-  console.log(`Google callback: ${GOOGLE_REDIRECT_URI}`);
+  console.log(`OAuth callback: ${GOOGLE_REDIRECT_URI}`);
 });
