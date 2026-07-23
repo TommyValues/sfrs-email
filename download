@@ -1,9 +1,4 @@
-NODE_ENV=development
-PORT=3000
-BASE_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-private-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
-SESSION_SECRET=replace-with-a-long-random-value
-ALLOWED_EMAIL=contact.acfo.admin@gmail.com
-DATABASE_URL=
+node_modules/
+.env
+npm-debug.log*
+.DS_Store

@@ -1,22 +1,48 @@
-{
-  "name": "acfo-mail",
-  "version": "2.0.0",
-  "private": true,
-  "main": "server.js",
-  "type": "commonjs",
-  "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "connect-pg-simple": "10.0.0",
-    "dotenv": "17.2.3",
-    "express": "5.2.1",
-    "express-session": "1.19.0",
-    "googleapis": "173.0.0",
-    "pg": "8.16.3"
-  }
-}
+# ACFO Mail
+
+Verified Render-ready Gmail client.
+
+## Upload
+
+Upload every file in this ZIP to the top level of the GitHub repository.
+
+## Render settings
+
+Root Directory: leave blank
+
+Build Command:
+
+    npm install
+
+Start Command:
+
+    npm start
+
+## Required environment variables
+
+- NODE_ENV=production
+- BASE_URL=https://sfrs-email.onrender.com
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+- GOOGLE_REDIRECT_URI=https://sfrs-email.onrender.com/auth/google/callback
+- SESSION_SECRET
+- ALLOWED_EMAIL=contact.acfo.admin@gmail.com
+- DATABASE_URL
+
+Use the Internal Database URL from a Render PostgreSQL database for DATABASE_URL.
+
+## Google Cloud
+
+Enable Gmail API.
+
+Authorized JavaScript origin:
+
+    https://sfrs-email.onrender.com
+
+Authorized redirect URI:
+
+    https://sfrs-email.onrender.com/auth/google/callback
+
+While the OAuth app is in Testing, add contact.acfo.admin@gmail.com as a test user.
+
+Never commit the Google client secret, database URL, or session secret to GitHub.

@@ -1,161 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1f3a">
   <title>ACFO Mail</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css">
 </head>
-
 <body>
-  <div id="loginScreen" class="login">
+  <div id="toast" class="toast"></div>
+
+  <section id="login" class="login hidden">
     <div class="login-card">
-      <div class="logo-mark">A</div>
+      <div class="logo">A</div>
+      <p class="eyebrow">Secure communications portal</p>
       <h1>ACFO Mail</h1>
-      <p>Sign in to access contact.acfo.admin@gmail.com</p>
-
-      <a class="google-button" href="/auth/google">
-        Continue with Google
-      </a>
-
-      <p id="loginError" class="error-message"></p>
+      <p>Sign in to manage <strong id="allowed-email">contact.acfo.admin@gmail.com</strong>.</p>
+      <a href="/auth/google" class="google-button">Continue with Google</a>
+      <p id="oauth-warning" class="warning hidden"></p>
     </div>
-  </div>
+  </section>
 
-  <div id="mailApp" class="app-shell hidden">
+  <div id="app" class="app hidden">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon">A</div>
-        <span>ACFO Mail</span>
-      </div>
+      <button id="menu-button" class="icon-button">☰</button>
+      <div class="brand"><span>A</span><strong>ACFO Mail</strong></div>
 
-      <div class="search">
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search mail"
-          autocomplete="off"
-        />
-      </div>
+      <form id="search-form" class="search">
+        <input id="search" type="search" placeholder="Search mail">
+      </form>
+
+      <button id="refresh-button" class="icon-button">↻</button>
 
       <div class="profile">
-        <div class="profile-text">
-          <strong>ACFO Admin</strong>
-          <small id="accountEmail">
-            contact.acfo.admin@gmail.com
-          </small>
+        <img id="avatar" alt="">
+        <div>
+          <strong id="profile-name">ACFO Admin</strong>
+          <small id="profile-email"></small>
         </div>
-
-        <button id="logoutButton" class="text-button">
-          Sign out
-        </button>
+        <button id="logout-button">Sign out</button>
       </div>
     </header>
 
     <div class="workspace">
-      <aside class="sidebar">
-        <button id="composeButton" class="compose">
-          Compose
-        </button>
-
+      <aside id="sidebar" class="sidebar">
+        <button id="compose-button" class="compose">＋ Compose</button>
         <nav>
-          <button class="nav-item active" data-folder="inbox">
-            Inbox
-          </button>
-
-          <button class="nav-item" data-folder="starred">
-            Starred
-          </button>
-
-          <button class="nav-item" data-folder="sent">
-            Sent
-          </button>
-
-          <button class="nav-item" data-folder="drafts">
-            Drafts
-          </button>
-
-          <button class="nav-item" data-folder="trash">
-            Trash
-          </button>
+          <button class="nav-item active" data-folder="inbox">Inbox</button>
+          <button class="nav-item" data-folder="starred">Starred</button>
+          <button class="nav-item" data-folder="sent">Sent</button>
+          <button class="nav-item" data-folder="drafts">Drafts</button>
+          <button class="nav-item" data-folder="trash">Trash</button>
         </nav>
       </aside>
 
       <main class="main">
-        <section id="messageListView">
-          <div class="mail-toolbar">
-            <h2 id="folderTitle">Inbox</h2>
-
-            <button id="refreshButton" class="icon-button">
-              Refresh
-            </button>
+        <section id="list-view" class="panel">
+          <div class="toolbar">
+            <h1 id="folder-title">Inbox</h1>
+            <span id="status"></span>
           </div>
-
-          <div id="loadingMessage" class="empty">
-            Loading messages…
-          </div>
-
-          <div id="messageList"></div>
+          <div id="message-list"></div>
         </section>
 
-        <section id="readerView" class="reader hidden">
+        <section id="reader" class="panel reader hidden">
           <div class="reader-actions">
-            <button id="backButton">← Back</button>
-            <button id="deleteButton">Delete</button>
+            <button id="back-button">← Back</button>
+            <button id="delete-button">Move to trash</button>
           </div>
-
-          <h1 id="readerSubject"></h1>
-
+          <h1 id="reader-subject"></h1>
           <div class="reader-meta">
-            <strong id="readerFrom"></strong>
-            <span id="readerDate"></span>
+            <div>
+              <strong id="reader-from"></strong>
+              <div id="reader-to"></div>
+            </div>
+            <time id="reader-date"></time>
           </div>
-
-          <div id="readerTo" class="reader-to"></div>
-          <pre id="readerBody" class="reader-body"></pre>
-
-          <button id="replyButton" class="reply-button">
-            Reply
-          </button>
+          <pre id="reader-body"></pre>
+          <button id="reply-button">Reply</button>
         </section>
       </main>
     </div>
   </div>
 
-  <div id="composeModal" class="modal hidden">
-    <div class="compose-window">
+  <div id="compose-modal" class="modal hidden">
+    <form id="compose-form" class="compose-window">
       <header>
         <strong>New message</strong>
-        <button id="closeComposeButton">×</button>
+        <button type="button" id="close-compose">×</button>
       </header>
-
-      <input
-        id="composeTo"
-        type="email"
-        placeholder="Recipients"
-      />
-
-      <input
-        id="composeSubject"
-        type="text"
-        placeholder="Subject"
-      />
-
-      <textarea
-        id="composeBody"
-        placeholder="Write your message"
-      ></textarea>
-
+      <input id="compose-to" type="email" placeholder="Recipient" required>
+      <input id="compose-subject" placeholder="Subject">
+      <textarea id="compose-body" placeholder="Write your message"></textarea>
       <footer>
-        <button id="sendButton" class="send-button">
-          Send
-        </button>
+        <button type="submit">Send</button>
+        <span id="send-status"></span>
       </footer>
-    </div>
+    </form>
   </div>
 
-  <div id="toast" class="toast"></div>
-
-  <script src="/app.js"></script>
+  <script src="/app.js" defer></script>
 </body>
 </html>
