@@ -1,21 +1,22 @@
 {
-  "name": "acfo-gmail-client",
-  "version": "1.0.0",
+  "name": "acfo-mail",
+  "version": "2.0.0",
   "private": true,
-  "description": "Gmail-style email client for contact.acfo.admin@gmail.com",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js && node --check public/app.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-session": "^1.18.1",
-    "googleapis": "^144.0.0",
-    "helmet": "^8.0.0"
+    "connect-pg-simple": "10.0.0",
+    "dotenv": "17.2.3",
+    "express": "5.2.1",
+    "express-session": "1.19.0",
+    "googleapis": "173.0.0",
+    "pg": "8.16.3"
   }
 }

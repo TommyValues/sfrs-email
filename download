@@ -1,7 +1,9 @@
-NODE_ENV=production
-BASE_URL=https://sfrs-email.onrender.com
-GOOGLE_CLIENT_ID=240882253566-5uveblo41rs24iruuhgbneu2pe189s2r.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=PASTE_YOUR_GOOGLE_CLIENT_SECRET_HERE
-GOOGLE_REDIRECT_URI=https://sfrs-email.onrender.com/auth/google/callback
-SESSION_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET
+NODE_ENV=development
+PORT=3000
+BASE_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-private-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+SESSION_SECRET=replace-with-a-long-random-value
 ALLOWED_EMAIL=contact.acfo.admin@gmail.com
+DATABASE_URL=

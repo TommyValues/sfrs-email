@@ -1,41 +1,21 @@
-services:
-  - type: web
-    name: sfrs-email
-    runtime: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
+# ACFO Mail
 
-    envVars:
-      - key: NODE_ENV
-        value: production
+Render-ready Gmail client restricted to `contact.acfo.admin@gmail.com`.
 
-      - key: BASE_URL
-        value: https://sfrs-email.onrender.com
+## Upload
+Upload all files to the root of your GitHub repository. Leave Render Root Directory blank. Use `npm install` and `npm start`.
 
-      - key: GOOGLE_CLIENT_ID
-        sync: false
+## Render environment variables
+Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET`, and `DATABASE_URL`. Also set:
 
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
+- `NODE_ENV=production`
+- `BASE_URL=https://sfrs-email.onrender.com`
+- `GOOGLE_REDIRECT_URI=https://sfrs-email.onrender.com/auth/google/callback`
+- `ALLOWED_EMAIL=contact.acfo.admin@gmail.com`
 
-      - key: GOOGLE_REDIRECT_URI
-        value: https://sfrs-email.onrender.com/auth/google/callback
+Use a Render PostgreSQL **Internal Database URL** for `DATABASE_URL`.
 
-      - key: SESSION_SECRET
-        generateValue: true
+## Google Cloud
+Enable Gmail API. Add `https://sfrs-email.onrender.com` as an authorised JavaScript origin and `https://sfrs-email.onrender.com/auth/google/callback` as an authorised redirect URI. While testing, add the Gmail account as a test user.
 
-      - key: ALLOWED_EMAIL
-        value: contact.acfo.admin@gmail.com
-
-      - key: DATABASE_URL
-        fromDatabase:
-          name: sfrs-email-database
-          property: connectionString
-
-databases:
-  - name: sfrs-email-database
-    plan: free
-    databaseName: sfrs_email
-    user: sfrs_email_user
+Never commit private secrets.
