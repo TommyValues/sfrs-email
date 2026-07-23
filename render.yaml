@@ -1,0 +1,57 @@
+# ACFO Mail — Render-ready Gmail client
+
+This app provides a Gmail-style web interface for **contact.acfo.admin@gmail.com**. It uses Google OAuth and the Gmail API to read, search, star, trash, and send mail.
+
+## Upload/deploy on Render
+
+The ZIP is intentionally packaged with `package.json`, `server.js`, and `render.yaml` at the top level. Do **not** set a Root Directory.
+
+### Render settings
+
+- Runtime: Node
+- Root Directory: leave blank
+- Build Command: `npm install`
+- Start Command: `npm start`
+
+Or deploy using the included `render.yaml` Blueprint.
+
+## Required Google Cloud configuration
+
+1. Open Google Cloud Console and create/select a project.
+2. Enable **Gmail API**.
+3. Configure the OAuth consent screen.
+4. Add `contact.acfo.admin@gmail.com` as a test user while the app is in Testing mode.
+5. Create an OAuth 2.0 Client ID of type **Web application**.
+6. Add this exact Authorized redirect URI:
+
+   `https://sfrs-email.onrender.com/auth/google/callback`
+
+7. In Render, add the Google OAuth client secret as `GOOGLE_CLIENT_SECRET`.
+
+The Client ID is already placed in `render.yaml` and `.env.example`:
+
+`240882253566-5uveblo41rs24iruuhgbneu2pe189s2r.apps.googleusercontent.com`
+
+## Required Render environment variables
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET` (secret; never commit it)
+- `GOOGLE_REDIRECT_URI=https://sfrs-email.onrender.com/auth/google/callback`
+- `BASE_URL=https://sfrs-email.onrender.com`
+- `SESSION_SECRET` (Render Blueprint generates this automatically)
+- `ALLOWED_EMAIL=contact.acfo.admin@gmail.com`
+- `NODE_ENV=production`
+
+## Local development
+
+```bash
+cp .env.example .env
+npm install
+npm start
+```
+
+For local OAuth, change `BASE_URL` to `http://localhost:3000`, change `GOOGLE_REDIRECT_URI` to `http://localhost:3000/auth/google/callback`, and register that URI in Google Cloud.
+
+## Important production note
+
+This starter uses the default in-memory Express session store. It is suitable for a single Render instance and testing. For heavier production use, replace it with a persistent Redis or database-backed session store.
